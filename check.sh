@@ -41,40 +41,54 @@ function run_test() {
 
     echo >> $log_file
     echo "------------------------------------------" >> $log_file
-    echo -e "\tRodando caso de teste $real_test_number..."
+    echo -e "\t ➜  Rodando caso de teste $real_test_number..."
     echo "Teste #$real_test_number" >> $log_file
     echo >> $log_file
 
-    $path/Assignments/Executable/$filename.o < $path/Solution/$test_name.$test_number.in > $path/$test_name.$test_number.out
+    output=$($path/Assignments/Executable/$filename.o < $path/Solution/$test_name.$test_number.in 2>&1)
+
+    echo "$output" > $path/Output/$test_name.$test_number.out
 
     echo -e "\t* Sem espaço" >> $log_file
-    diffWhithoutWhitespace=$(diff -w $path/Solution/$test_name.$test_number.sol $path/$test_name.$test_number.out)
+    diffWhithoutWhitespace=$(diff -w $path/Solution/$test_name.$test_number.sol $path/Output/$test_name.$test_number.out)
 
     if [[ -z $diffWhithoutWhitespace ]]; then
         echo -e "\t  PASSOU!" >> $log_file
         echo >> $log_file
     else
-        echo -e "\t\t$diffWithoutWhitespace" >> $log_file
+        echo -e "\t  FALHOU!" >> $log_file
         echo >> $log_file
     fi
 
     echo -e "\t* Com espaço" >> $log_file
-    diffWhithWhitespace=$(diff $path/Solution/$test_name.$test_number.sol $path/$test_name.$test_number.out)
+    diffWhithWhitespace=$(diff $path/Solution/$test_name.$test_number.sol $path/Output/$test_name.$test_number.out)
 
     if [[ -z $diffWhithWhitespace ]]; then
         echo -e "\t  PASSOU!" >> $log_file
         echo >> $log_file
     else
-        echo -e "\t\t$diffWhithWhitespace" >> $log_file
+        echo -e "\t  FALHOU!" >> $log_file
         echo >> $log_file
     fi
 
+    if [[(-z $diffWhithoutWhitespace) && (-z $diffWhithWhitespace)]]; then
+        echo -e "\e[1A\e[K\t 🄲  Rodando caso de teste $real_test_number..."
+    elif [[ (-z $diffWhithoutWhitespace) || (-z $diffWhithWhitespace) ]]; then
+        echo -e "\e[1A\e[K\t 🄳  Rodando caso de teste $real_test_number..."
+    else
+        echo -e "\e[1A\e[K\t 🄴  Rodando caso de teste $real_test_number..."
+    fi
+
+    sleep 0.25
+
     if [[ "$remove_file" = true ]]; then
-        rm $path/$test_name.$test_number.out
+        rm $path/Output/$test_name.$test_number.out
     fi;
 
     echo "------------------------------------------" >> $log_file
 }
+
+ts=$(date +%s%N)
 
 echo "*******************************************"
 echo "************** T1 - CORREÇÃO **************"
@@ -88,6 +102,10 @@ touch $log_file
 
 echo
 
+echo "-------------------------------------------"
+
+echo
+
 echo "Compilação em andamento..."
 
 errors=$(gcc $path/Assignments/Source/$1.c -Wall -pedantic --std=c99 -o $path/Assignments/Executable/$1.o 2>&1)
@@ -98,12 +116,17 @@ echo >> $log_file
 
 echo "COMPILAÇÃO" >> $log_file
 
+echo
+
 if  [[ -z $errors ]]; then
+    echo -e "${bg_green}Compilação bem sucedida!${clear}"
     echo "OK!" >> $log_file
 else
-    echo -e "${bg_red}Erro de compilação!${clear}"
+    echo -e "${bg_red}Erro(s) de compilação!${clear}"
     echo "$errors" >> $log_file
 fi
+
+echo
 
 echo >> $log_file
 
@@ -113,8 +136,14 @@ echo -e "Compilação finalizada."
 
 echo
 
-if  [[ "-z $errors" ]]; then
+echo "-------------------------------------------"
+
+echo
+
+if  [ -e $path/Assignments/Executable/$1.o ]; then
     echo "Verificação de casos de teste iniciada..."
+
+    echo
 
     for number in 1 2 3
     do
@@ -126,6 +155,8 @@ if  [[ "-z $errors" ]]; then
         run_test "entrada" $number $remove_output
     done
 
+    echo
+
     echo -e "Verificação de casos de teste encerrada."
 
     echo
@@ -136,9 +167,24 @@ if  [[ "-z $errors" ]]; then
         echo
     fi;
 else
+    echo "Executável não encontrado!"
     echo "Verificação de casos de teste abortada."
 
     echo
 fi
 
-echo -e "${bg_green}Verifique o log de correção!${clear}"
+echo "-------------------------------------------"
+
+echo
+
+echo -e "${bg_green}Log de correção gerado com sucesso!${clear}"
+
+tt=$((($(date +%s%N) - $ts)/1000000))
+
+tt=$(bc <<< "scale=3; $tt/1000")
+
+echo "Tempo de execução: $tt (s)"
+
+echo
+
+echo "-------------------------------------------"
